@@ -1,16 +1,17 @@
 package org.ia.cinema
 
 import cats.effect.concurrent.Ref
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ ExitCode, IO, IOApp }
 import cats.syntax.functor._
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import org.ia.cinema.Config.ApplicationConf
 import org.ia.cinema.client.ImdbHttpClient
 import org.ia.cinema.model.Ids.CinemaId
 import org.ia.cinema.model.ImdbResponse
-import org.ia.cinema.repository.{InMemoryCinemaRepository, SeatsForMovie}
+import org.ia.cinema.repository.{ InMemoryCinemaRepository, SeatsForMovie }
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.ia.cinema.api.ApiRoutes
 import org.ia.cinema.service.CinemaServiceImpl
 
 import scala.concurrent.ExecutionContext

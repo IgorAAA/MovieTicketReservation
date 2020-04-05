@@ -3,13 +3,8 @@ package org.ia.cinema.http
 import cats.effect._
 import io.circe._
 import io.circe.syntax._
-import org.ia.cinema.ApiRoutes
-import org.ia.cinema.api.Model.{
-  MovieInfoResult,
-  RegisterMovieMessage,
-  ReserveSeatMessage
-}
-import org.ia.cinema.model.Ids.{CinemaId, ImdbId, ScreenId}
+import org.ia.cinema.api.Model.{ MovieInfoResult, RegisterMovieMessage, ReserveSeatMessage }
+import org.ia.cinema.model.Ids.{ CinemaId, ImdbId, ScreenId }
 import org.ia.cinema.model.RetrieveMovieInfo
 import org.ia.cinema.model.SeatsAvailablity._
 import org.http4s._
@@ -17,6 +12,7 @@ import org.http4s.circe.CirceEntityEncoder._
 import org.http4s.circe._
 import org.http4s.dsl.io._
 import org.http4s.implicits._
+import org.ia.cinema.api.ApiRoutes
 import org.ia.cinema.service.CinemaService
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -93,9 +89,7 @@ object RouteSpec {
       else IO.raiseError(new IllegalStateException("Cannot reserve a seat"))
     }
 
-    override def retrieveMovieInfo(
-      msg: RetrieveMovieInfo
-    ): IO[MovieInfoResult] = {
+    override def retrieveMovieInfo(msg: RetrieveMovieInfo): IO[MovieInfoResult] = {
       val cid = CinemaId(msg.imdbId, msg.screenId)
       if (cid == happyPathCid)
         IO.pure(
@@ -114,10 +108,13 @@ object RouteSpec {
 
   val routes = new ApiRoutes[IO].routes(serviceMock)
 
-  def check[A](actual: IO[Response[IO]],
-               expectedStatus: Status,
-               expectedBody: Option[A])(implicit
-                                        ev: EntityDecoder[IO, A]): Boolean = {
+  def check[A](
+      actual: IO[Response[IO]],
+      expectedStatus: Status,
+      expectedBody: Option[A]
+    )(implicit
+      ev: EntityDecoder[IO, A]
+    ): Boolean = {
     val actualResp = actual.unsafeRunSync
     val statusCheck = actualResp.status == expectedStatus
     val bodyCheck = expectedBody.fold[Boolean](

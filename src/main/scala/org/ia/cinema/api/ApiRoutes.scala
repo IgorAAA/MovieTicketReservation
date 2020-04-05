@@ -1,16 +1,15 @@
-package org.ia.cinema
+package org.ia.cinema.api
 
 import cats.effect.Sync
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import io.circe.syntax._
-import org.ia.cinema.api.Model._
-import org.ia.cinema.model.Ids.{ImdbId, ScreenId}
-import org.ia.cinema.model.RetrieveMovieInfo
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.io.QueryParamDecoderMatcher
+import org.ia.cinema.api.Model._
+import org.ia.cinema.model.Ids.{ ImdbId, ScreenId }
+import org.ia.cinema.model.RetrieveMovieInfo
 import org.ia.cinema.service.CinemaService
 
 import scala.language.higherKinds
@@ -18,10 +17,8 @@ import scala.language.higherKinds
 class ApiRoutes[F[_]: Sync] extends Http4sDsl[F] {
   val Cinema = "cinema"
 
-  object ImdbIdQueryParamMatcher
-      extends QueryParamDecoderMatcher[String]("imdb")
-  object ScreenIdQueryParamMatcher
-      extends QueryParamDecoderMatcher[String]("screen")
+  object ImdbIdQueryParamMatcher extends QueryParamDecoderMatcher[String]("imdb")
+  object ScreenIdQueryParamMatcher extends QueryParamDecoderMatcher[String]("screen")
 
   def routes(repo: CinemaService[F]): HttpRoutes[F] = HttpRoutes.of {
     case req @ POST -> Root / Cinema / "register_movie" =>
