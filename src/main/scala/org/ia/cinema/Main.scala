@@ -26,7 +26,6 @@ object Main extends IOApp {
 
   val program: IO[Unit] =
     for {
-      logger <- Slf4jLogger.create[IO]
       state <- Ref.of[IO, Map[CinemaId, SeatsForMovie]](Map.empty)
       conf <- IO(ApplicationConf())
       repo = new InMemoryCinemaRepository(state)
@@ -38,8 +37,13 @@ object Main extends IOApp {
     } yield ()
 
   override def run(args: List[String]): IO[ExitCode] = {
-    program
-      .handleErrorWith(err => IO(println(err.getMessage)))
+    Slf4jLogger
+      .create[IO]
+      .flatMap(
+        logger =>
+          program
+            .handleErrorWith(err => logger.error(err.getMessage))
+      )
       .as(ExitCode.Success)
   }
 }
