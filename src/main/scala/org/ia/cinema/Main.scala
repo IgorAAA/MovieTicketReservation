@@ -4,7 +4,7 @@ import cats.effect.concurrent.Ref
 import cats.effect.{ ExitCode, IO, IOApp }
 import cats.syntax.functor._
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
-import org.ia.cinema.Config.ApplicationConf
+import org.ia.cinema.Config.{ AppConf, ApplicationConf }
 import org.ia.cinema.client.ImdbHttpClient
 import org.ia.cinema.model.Ids.CinemaId
 import org.ia.cinema.model.ImdbResponse
@@ -21,8 +21,9 @@ object Main extends IOApp {
 
   private val httpClient = new ImdbHttpClient[IO, ImdbResponse]
 
-  private val httpServer = BlazeServerBuilder[IO]
-    .bindHttp(8080, "localhost")
+  private def httpServer(conf: AppConf) =
+    BlazeServerBuilder[IO]
+      .bindHttp(conf.port, conf.host)
 
   val program: IO[Unit] =
     for {
@@ -30,7 +31,7 @@ object Main extends IOApp {
       conf <- IO(ApplicationConf())
       repo = new InMemoryCinemaRepository(state)
       service = new CinemaServiceImpl[IO](repo, httpClient, conf)
-      _ <- httpServer
+      _ <- httpServer(conf.app)
         .withHttpApp(new ApiRoutes[IO].routes(service).orNotFound)
         .resource
         .use(_ => IO.never)
