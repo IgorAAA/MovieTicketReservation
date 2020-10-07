@@ -1,4 +1,4 @@
-package org.ia.cinema.serialization
+package org.ia.cinema.api
 
 import io.circe._
 import io.circe.parser._
@@ -23,9 +23,8 @@ class JsonDeserializationSpec extends AnyWordSpecLike with Matchers {
         reservedSeats = SeatsReserved(50)
       ).asJson
 
-      val json = parse(
-        Source.fromResource(s"jsons/retrieve_movie_info.json").mkString
-      ).getOrElse(Json.Null)
+      val json =
+        parse(Source.fromResource(s"jsons/retrieve_movie_info.json").mkString).getOrElse(Json.Null)
 
       jsonEncoded shouldBe json
     }

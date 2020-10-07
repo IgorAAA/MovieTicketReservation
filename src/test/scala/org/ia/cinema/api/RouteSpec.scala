@@ -1,23 +1,25 @@
-package org.ia.cinema.http
+package org.ia.cinema.api
 
 import cats.effect._
+import cats.scalatest.EitherMatchers
+import eu.timepit.refined.auto._
 import io.circe._
 import io.circe.syntax._
-import org.ia.cinema.api.Model.{ MovieInfoResult, RegisterMovieMessage, ReserveSeatMessage }
-import org.ia.cinema.model.Ids.{ CinemaId, ImdbId, ScreenId }
-import org.ia.cinema.model.RetrieveMovieInfo
-import org.ia.cinema.model.SeatsAvailablity._
 import org.http4s._
 import org.http4s.circe.CirceEntityEncoder._
 import org.http4s.circe._
 import org.http4s.dsl.io._
 import org.http4s.implicits._
-import org.ia.cinema.api.ApiRoutes
+import org.ia.cinema.api.ApiRoutes.validateMovieInfo
+import org.ia.cinema.api.Model.{MovieInfoResult, RegisterMovieMessage, ReserveSeatMessage}
+import org.ia.cinema.model.Ids.CinemaId
+import org.ia.cinema.model.RetrieveMovieInfo
+import org.ia.cinema.model.SeatsAvailablity._
 import org.ia.cinema.service.CinemaService
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-class RouteSpec extends AnyWordSpecLike with Matchers {
+class RouteSpec extends AnyWordSpecLike with Matchers with EitherMatchers {
   import RouteSpec._
 
   "ApiRoute" should {
@@ -26,11 +28,7 @@ class RouteSpec extends AnyWordSpecLike with Matchers {
       val response = routes.orNotFound.run(
         Request(method = POST, uri = uri"/cinema/register_movie")
           .withEntity(
-            RegisterMovieMessage(
-              happyPathCid.imdbId,
-              happyPathCid.screenId,
-              SeatsAvailable(100)
-            )
+            RegisterMovieMessage(happyPathCid.imdbId, happyPathCid.screenId, SeatsAvailable(100))
           )
       )
       check[Json](response, Status.Created, Some(().asJson)) shouldBe true
@@ -39,9 +37,7 @@ class RouteSpec extends AnyWordSpecLike with Matchers {
     "reserve a seat" in {
       val response = routes.orNotFound.run {
         Request(method = PUT, uri = uri"/cinema/reserve_seat")
-          .withEntity(
-            ReserveSeatMessage(happyPathCid.imdbId, happyPathCid.screenId)
-          )
+          .withEntity(ReserveSeatMessage(happyPathCid.imdbId, happyPathCid.screenId))
       }
       check[Json](response, Status.Ok, Some(().asJson)) shouldBe true
     }
@@ -67,14 +63,29 @@ class RouteSpec extends AnyWordSpecLike with Matchers {
         )
       ) shouldBe true
     }
+
+    "validate movie info with correct imdb (starting with 'ev')" in {
+      validateMovieInfo("ev01", "nonEmptyId") shouldBe Right(
+        RetrieveMovieInfo("ev01", "nonEmptyId")
+      )
+    }
+
+    "validate movie info with incorrect imdb" in {
+      validateMovieInfo("zws", "nonEmptyId") shouldBe left[IllegalArgumentException]
+    }
+
+    "validate movie info with empty screen id" in {
+      validateMovieInfo("tt22", "") shouldBe left[IllegalArgumentException]
+    }
   }
+
 }
 
 object RouteSpec {
-  val happyPathCid = CinemaId(ImdbId("a12"), ScreenId("42"))
+  val happyPathCid        = CinemaId("tt12", "42")
   val happyPathSeatsAvail = SeatsAvailable(100)
   val happyPathSeatsResvd = SeatsReserved(50)
-  val happyPathTitle = "My Movie"
+  val happyPathTitle      = "My Movie"
 
   val serviceMock = new CinemaService[IO] {
     override def registerMovie(msg: RegisterMovieMessage): IO[Unit] = {
@@ -108,14 +119,10 @@ object RouteSpec {
 
   val routes = new ApiRoutes[IO].routes(serviceMock)
 
-  def check[A](
-      actual: IO[Response[IO]],
-      expectedStatus: Status,
-      expectedBody: Option[A]
-    )(implicit
-      ev: EntityDecoder[IO, A]
-    ): Boolean = {
-    val actualResp = actual.unsafeRunSync
+  def check[A](actual: IO[Response[IO]], expectedStatus: Status, expectedBody: Option[A])(implicit
+    ev: EntityDecoder[IO, A]
+  ): Boolean = {
+    val actualResp  = actual.unsafeRunSync
     val statusCheck = actualResp.status == expectedStatus
     val bodyCheck = expectedBody.fold[Boolean](
       actualResp.body.compile.toVector.unsafeRunSync.isEmpty

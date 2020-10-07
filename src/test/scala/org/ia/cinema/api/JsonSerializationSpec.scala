@@ -1,33 +1,26 @@
-package org.ia.cinema.serialization
+package org.ia.cinema.api
 
+import cats.scalatest.EitherMatchers
 import io.circe._
 import io.circe.parser.decode
-import cats.scalatest.EitherMatchers
 import org.ia.cinema.api.Model.{RegisterMovieMessage, ReserveSeatMessage}
 import org.ia.cinema.model.SeatsAvailablity.SeatsAvailable
-import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.io.Source
 
-class JsonSerializationSpec
-    extends AnyWordSpecLike
-    with EitherMatchers
-    with Matchers {
+class JsonSerializationSpec extends AnyWordSpecLike with EitherMatchers with Matchers {
   import JsonSerializationSpec._
   import org.ia.cinema.TestUtils._
 
-  private val registerMovieMessage = RegisterMovieMessage(
-    imdbId = imdbId,
-    screenId = screenId,
-    availableSeats = SeatsAvailable(100)
-  )
+  private val registerMovieMessage =
+    RegisterMovieMessage(imdbId = imdbId, screenId = screenId, availableSeats = SeatsAvailable(100))
 
   private val reserveSeatMessage =
     ReserveSeatMessage(imdbId = imdbId, screenId = screenId)
 
-  private def checkCompatibility[A: Encoder: Decoder](a: A,
-                                                      filename: String) = {
+  private def checkCompatibility[A : Encoder : Decoder](a: A, filename: String) = {
     val decodedJson = decodeJson[A](filename)
 
     decodedJson shouldBe right
@@ -48,7 +41,7 @@ class JsonSerializationSpec
 }
 
 object JsonSerializationSpec {
-  private def decodeJson[A: Decoder](filename: String): Either[Error, A] = {
+  private def decodeJson[A : Decoder](filename: String): Either[Error, A] = {
     val json = Source.fromResource(s"jsons/$filename.json").mkString
     decode[A](json)
   }
